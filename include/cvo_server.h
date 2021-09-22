@@ -5,15 +5,16 @@
 #include <ros/package.h>
 
 #include <geometry_msgs/PoseStamped.h>
+#include "crazyflie/cvo.h"
+#include "crazyflie/add_subscriber.h"
 
 // #include <eigen3/Eigen/Core>
 #include <eigen_conversions/eigen_msg.h>
 
-#include "crazyflie/cvo.h"
-#include "crazyflie/add_subscriber.h"
-
 #include "collision_vo/collision_vo.h"
+#include "common_cpp/common.h"
 
+#include "quad_wp_manager.h"
 
 #include <map>
 #include <string>
@@ -35,6 +36,8 @@ private:
   ros::ServiceServer subscriber_service_;
   std::vector<ros::Subscriber> mocap_subscribers_;
 
+  std::string package_path_;
+
 
   CollisionVO quadCVO_;
   std::map<std::string, Vec3d> allPositions_;
@@ -43,11 +46,12 @@ private:
   std::map<std::string, double> allTimes_;
   std::vector<std::string> mocap_ids_;
 
-  // double beta_;
   double sigma_{0.05};
-  // double Ts_{1/30.0};
 
-  // void calc_beta();
+  double range_;
+
+  std::map<std::string, WPManager> allWPManagers;
+
   bool get_velocity(crazyflie::cvo::Request  &req,
           crazyflie::cvo::Response &res);
   bool add_subscriber(crazyflie::add_subscriber::Request  &req,

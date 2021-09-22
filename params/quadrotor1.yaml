@@ -1,0 +1,28 @@
+# Quadrotor 1 configuration
+
+# Controller
+throttle_eq: 0.5
+
+Kp: [0.75, 0.75, 0.75]
+Kd: [0.0, 0.0, 0.0]
+Kv: [1.5, 1.5, 1.5]
+
+
+max_vel: 1.0
+
+# Trajectory
+
+# 0: waypoints
+# 1: trajectory
+# 2: circumnavigation
+path_type: 0
+
+waypoints: [
+            1, 0.5, 1, 0,
+            -1, 0.5, 1, 0,
+            -1, -0.5, 1, 0,
+            1, -0.5, 1, 0,
+           ]
+
+waypoint_threshold: 0.1
+waypoint_velocity_threshold: 0.5

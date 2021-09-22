@@ -44,6 +44,9 @@ from cflib.utils import uri_helper
 
 import rospy
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Point
+
+from crazyflie.srv import *
 
 # URI to the Crazyflie to connect to
 uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E701')
@@ -240,74 +243,38 @@ if __name__ == '__main__':
         trajectory_id = 1
 
         rospy.Subscriber("/cf1_enu", PoseStamped, callback, cf)
+        rospy.wait_for_service('/cvo')
+        add_sub_service = rospy.ServiceProxy('/add_subscriber', add_subscriber)
+        waypoints = [1, 0.5, 1, 0,
+                    -1, 0.5, 1, 0,
+                    -1, -0.5, 1, 0,
+                    1, -0.5, 1, 0]
+        resp_add = add_sub_service("/cf1_enu", waypoints)
+
+        if(resp_add.success):
 
 
-        activate_kalman_estimator(cf)
-        activate_high_level_commander(cf)
-        activate_mellinger_controller(cf)
-        duration = upload_trajectory(cf, trajectory_id, figure8)
-        print('The sequence is {:.1f} seconds long'.format(duration))
-        reset_estimator(cf)
 
-        # from cflib.positioning.position_hl_commander import PositionHlCommander
-        # with PositionHlCommander(scf, controller=1, default_velocity=0.65) as pc:
-        #     #     pc.forward(1.0)
-        #     #     pc.left(1.0)
-        #     #     pc.back(1.0)
-        #     pc.go_to(-0.5, -0.5, 1.0)
-        #     pc.go_to(1.0, 0.0, 1.0)
-        #     pc.go_to(1.0, 1.0, 1.0)
-        #     pc.go_to(0.0, 1.0, 1.0)
-        #     pc.go_to(-0.5, -0.5, 1.0)
-        #     pc.forward(1.0)
-
-        # run_sequence(cf, trajectory_id, duration)
+            activate_kalman_estimator(cf)
+            activate_high_level_commander(cf)
+            activate_mellinger_controller(cf)
+            # duration = upload_trajectory(cf, trajectory_id, figure8)
+            # print('The sequence is {:.1f} seconds long'.format(duration))
+            reset_estimator(cf)
 
 
-        from cflib.positioning.motion_commander import MotionCommander
-        with MotionCommander(scf) as mc:
-            time.sleep(1)
 
-            # # There is a set of functions that move a specific distance
-            # # We can move in all directions
-            # mc.forward(0.8)
-            # mc.back(0.8)
-            # time.sleep(1)
-            #
-            # mc.up(0.5)
-            # mc.down(0.5)
-            # time.sleep(1)
-            #
-            # # We can also set the velocity
-            # mc.right(0.5, velocity=0.8)
-            # time.sleep(1)
-            # mc.left(0.5, velocity=0.4)
-            # time.sleep(1)
-            #
-            # # We can do circles or parts of circles
-            # mc.circle_right(0.5, velocity=0.5, angle_degrees=180)
-            #
-            # # Or turn
-            # mc.turn_left(90)
-            # time.sleep(1)
-            #
-            # # We can move along a line in 3D space
-            # mc.move_distance(-1, 0.0, 0.5, velocity=0.6)
-            # time.sleep(1)
-            #
-            # # There is also a set of functions that start a motion. The
-            # # Crazyflie will keep on going until it gets a new command.
-            #
-            # mc.start_left(velocity=0.5)
-            # # The motion is started and we can do other stuff, printing for
-            # # instance
-            # for _ in range(5):
-            #     print('Doing other work')
-            #     time.sleep(0.2)
+            from cflib.positioning.motion_commander import MotionCommander
+            with MotionCommander(scf) as mc:
+                time.sleep(1)
 
-            mc.start_linear_motion(0.1,0.5,0.3,0.2)
-            for _ in range(5):
-                time.sleep(0.5)
-            # And we can stop
-            mc.stop()
-            time.sleep(2)
+                for _ in range(1000):
+                    cvo_service = rospy.ServiceProxy('/cvo', cvo)
+                    dt = 0.1
+                    resp_cvo = cvo_service("/cf1_enu", dt)
+
+                    mc.start_linear_motion(resp_cvo.x,resp_cvo.y,resp_cvo.z,0.0)
+                    time.sleep(dt)
+                # And we can stop
+                mc.stop()
+                time.sleep(2)

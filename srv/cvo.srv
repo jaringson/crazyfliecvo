@@ -1,6 +1,5 @@
 # Service to return commanded velocity from mocap id
 string mocap_id
-geometry_msgs/Point velDes
 float32 dt
 ---
 geometry_msgs/Point velCommand

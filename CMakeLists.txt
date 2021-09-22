@@ -20,6 +20,7 @@ find_package(yaml-cpp REQUIRED)
 find_package(Boost REQUIRED)
 
 add_subdirectory(lib/collision_vo)
+add_subdirectory(lib/common_cpp)
 
 # add_message_files(
 #   FILES
@@ -51,8 +52,11 @@ include_directories(
 )
 
 add_executable(cvo_server
-  src/cvo_server.cpp)
+  src/cvo_server.cpp
+  src/quad_wp_manager.cpp)
 target_link_libraries(cvo_server
   collision_vo
+  common_cpp
+  ${YAML_CPP_LIBRARIES}
   ${catkin_LIBRARIES})
 # add_dependencies(cvo_server crazyflie_gencpp)

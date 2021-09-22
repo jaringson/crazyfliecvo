@@ -3,23 +3,34 @@
 CVOServer::CVOServer() :
   nh_(), nh_private_("~")
 {
-  std::string mc_path = ros::package::getPath("crazyflie");
-  // nh_private_.param<int>("id", id_, 0);
-  std::string parameter_filename = nh_private_.param<std::string>("param_filename", mc_path + "/params/cvo.yaml");
+  std::string package_path_ = ros::package::getPath("crazyflie");
+  std::string parameter_filename = nh_private_.param<std::string>("param_filename", package_path_ + "/params/cvo.yaml");
 
   cvo_service_ = nh_.advertiseService("/cvo", &CVOServer::get_velocity, this);
   subscriber_service_ = nh_.advertiseService("/add_subscriber", &CVOServer::add_subscriber, this);
 
-  // calc_beta(1/60.0);
+  double numPointsAdmissible, collisionRadius, range, bufferPower;
+  common::get_yaml_node("num_admissible_points", parameter_filename, numPointsAdmissible);
+  common::get_yaml_node("collision_radius", parameter_filename, collisionRadius);
+  common::get_yaml_node("range", parameter_filename, range);
+  common::get_yaml_node("buffer_power", parameter_filename, bufferPower);
+
+  bool bufferOn;
+  common::get_yaml_node("buffer_on", parameter_filename, bufferOn);
+
+  quadCVO_.numPointsAdmissible = numPointsAdmissible;
+  quadCVO_.collisionRadius = collisionRadius;
+  // quadCVO_.range = range;
+  range_ = range;
+
+  quadCVO_.bufferPower = bufferPower;
+  quadCVO_.bufferOn = bufferOn;
 }
 
 CVOServer::~CVOServer()
 {}
 
-// void CVOServer::calc_beta(double dt)
-// {
-//   beta_ = (2.0*sigma_-dt)/(2.0*sigma_+dt);
-// }
+
 
 void CVOServer::poseCallback(boost::shared_ptr<geometry_msgs::PoseStamped const> msg, const std::string &mocap_id)
 {
@@ -55,6 +66,12 @@ bool CVOServer::add_subscriber(crazyflie::add_subscriber::Request  &req,
       boost::bind(&CVOServer::poseCallback, this, _1, req.mocap_id));
 
   mocap_subscribers_.push_back(pose_sub);
+
+  WPManager wpManager;
+  std::vector<double> waypoints(std::begin(req.waypoints), std::end(req.waypoints));
+  wpManager.load(package_path_+"params/quadrotor1.yaml", waypoints);
+  allWPManagers[req.mocap_id] = wpManager;
+
   res.success = true;
   return true;
 }
@@ -66,8 +83,9 @@ bool CVOServer::get_velocity(crazyflie::cvo::Request  &req,
   Vec3d av1Vo = allVelocities_[req.mocap_id];
 
 
-  Eigen::Vector3d av1VelDes;
-  tf::pointMsgToEigen(req.velDes, av1VelDes);
+  Eigen::Vector3d av1VelDes = allWPManagers[req.mocap_id].updateWaypointManager(
+              Eigen::Map<Vector3d>(av1Xo.data()));
+  // tf::pointMsgToEigen(req.velDes, av1VelDes);
   // Vec3d av1VelDes_ = Eigen::Map<Vec3d>(av1VelDes.data());
 
   Eigen::VectorXd state;
@@ -84,13 +102,15 @@ bool CVOServer::get_velocity(crazyflie::cvo::Request  &req,
   {
     if(req.mocap_id != x.first)
     {
-      inRangePos.push_back(x.second);
-      inRangeVel.push_back(allVelocities_[x.first]);
+      if((av1Xo-x.second).norm() < range_)
+      {
+        inRangePos.push_back(x.second);
+        inRangeVel.push_back(allVelocities_[x.first]);
+      }
     }
   }
 
   quadCVO_.Ts = dt;
-  quadCVO_.numPointsAdmissible = 10;
   Eigen::Vector3d velCommand = quadCVO_.get_best_vel(av1Xo,
                       av1Vo,
                       Eigen::Map<Vec3d>(av1VelDes.data()),

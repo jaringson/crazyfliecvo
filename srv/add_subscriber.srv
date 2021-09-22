@@ -1,4 +1,5 @@
 # Service to register id for the service
 string mocap_id
+float32[] waypoints
 ---
 bool success
