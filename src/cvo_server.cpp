@@ -1,33 +1,44 @@
-#include "ros/ros.h"
-#include <ros/package.h>
+#include "cvo_server.h"
 
-// #include <eigen3/Eigen/Core>
+CVOServer::CVOServer() :
+  nh_(), nh_private_("~")
+{
+  std::string mc_path = ros::package::getPath("crazyflie");
+  // nh_private_.param<int>("id", id_, 0);
+  std::string parameter_filename = nh_private_.param<std::string>("param_filename", mc_path + "/params/cvo.yaml");
 
-#include "crazyflie/cvo.h"
-#include "crazyflie/add_subscriber.h"
+  cvo_service_ = nh_.advertiseService("/cvo", &CVOServer::get_velocity, this);
+  subscriber_service_ = nh_.advertiseService("/add_subscriber", &CVOServer::add_subscriber, this);
+}
 
-#include "collision_vo/collision_vo.h"
+CVOServer::~CVOServer()
+{}
 
-#include <eigen_conversions/eigen_msg.h>
+void CVOServer::poseCallback(const geometry_msgs::PoseStamped &msg, const std::string &topic)
+{
+  ;
+}
 
-#include <map>
-#include <string>
 
-CollisionVO quadCVO;
-std::map<std::string, std::vector<Vec3d>> allPositions;
-std::map<std::string, std::vector<Vec3d>> allVelocities;
-std::vector<std::string> ids;
-
-bool add_subscriber(crazyflie::add_subscriber::Request  &req,
+bool CVOServer::add_subscriber(crazyflie::add_subscriber::Request  &req,
          crazyflie::add_subscriber::Response &res)
 {
 
-  ids.push_back(req.mocap_id);
+  mocap_ids_.push_back(req.mocap_id);
+  // boost::function<void(const boost::shared_ptr<geometry_msgs::PoseStamped const>&)> callback =
+  //   boost::bind(CVOServer::poseCallback, _1, boost::ref(req.mocap_id));
+  // boost::shared_ptr<CVOServer> foo_object(boost::make_shared<CVOServer>());
+  ros::Subscriber pose_sub = nh_.subscribe<geometry_msgs::PoseStamped>(req.mocap_id,
+      10,
+      boost::bind(CVOServer::poseCallback, _1, req.mocap_id),
+      this);
+
+  // mocap_subscribers_.push_back(pose_sub);
   res.success = true;
   return true;
 }
 
-bool add(crazyflie::cvo::Request  &req,
+bool CVOServer::get_velocity(crazyflie::cvo::Request  &req,
          crazyflie::cvo::Response &res)
 {
   // Eigen::Vector3d av1Xo;
@@ -76,9 +87,9 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "cvo_server");
   ros::NodeHandle n;
 
-  ros::ServiceServer cvo_service = n.advertiseService("/cvo", add);
-  ros::ServiceServer sub_service = n.advertiseService("/add_subscriber", add_subscriber);
-  ROS_INFO("CVO Ready.");
+  // ros::ServiceServer cvo_service = n.advertiseService("/cvo", add);
+  // ros::ServiceServer sub_service = n.advertiseService("/add_subscriber", add_subscriber);
+  ROS_INFO("CVO Server Ready.");
   ros::spin();
 
   return 0;
