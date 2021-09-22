@@ -1,7 +1,7 @@
 
 collision_radius: 0.4 # Radius for collision
 collision_range: 10 # Range for collision dectection
-collision_acceleration: 5 # Acceleration
+collision_acceleration: 100 # Acceleration
 time_collision_penality: 100.0 # Time penalty
 pos_uncertain_penalty: 1
 vel_uncertain_penalty: 1
@@ -36,7 +36,7 @@ radar_x: 0
 radar_y: -200
 
 
-buffer_on: true
+buffer_on: false
 buffer_power: 50
 
 dt: 0.1

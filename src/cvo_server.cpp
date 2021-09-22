@@ -3,14 +3,15 @@
 CVOServer::CVOServer() :
   nh_(), nh_private_("~")
 {
-  std::string package_path_ = ros::package::getPath("crazyflie");
+  package_path_ = ros::package::getPath("crazyflie");
   std::string parameter_filename = nh_private_.param<std::string>("param_filename", package_path_ + "/params/cvo.yaml");
 
   cvo_service_ = nh_.advertiseService("/cvo", &CVOServer::get_velocity, this);
   subscriber_service_ = nh_.advertiseService("/add_subscriber", &CVOServer::add_subscriber, this);
 
-  double numPointsAdmissible, collisionRadius, range, bufferPower;
-  common::get_yaml_node("num_admissible_points", parameter_filename, numPointsAdmissible);
+  double numPointsAdmissible, collisionRadius, range, bufferPower, collision_acceleration;
+  common::get_yaml_node("num_points_admissible", parameter_filename, numPointsAdmissible);
+  common::get_yaml_node("collision_acceleration", parameter_filename, collision_acceleration);
   common::get_yaml_node("collision_radius", parameter_filename, collisionRadius);
   common::get_yaml_node("range", parameter_filename, range);
   common::get_yaml_node("buffer_power", parameter_filename, bufferPower);
@@ -19,6 +20,7 @@ CVOServer::CVOServer() :
   common::get_yaml_node("buffer_on", parameter_filename, bufferOn);
 
   quadCVO_.numPointsAdmissible = numPointsAdmissible;
+  quadCVO_.maxAccel = collision_acceleration;
   quadCVO_.collisionRadius = collisionRadius;
   // quadCVO_.range = range;
   range_ = range;
@@ -69,7 +71,7 @@ bool CVOServer::add_subscriber(crazyflie::add_subscriber::Request  &req,
 
   WPManager wpManager;
   std::vector<double> waypoints(std::begin(req.waypoints), std::end(req.waypoints));
-  wpManager.load(package_path_+"params/quadrotor1.yaml", waypoints);
+  wpManager.load(package_path_+"/params/quadrotor1.yaml", waypoints);
   allWPManagers[req.mocap_id] = wpManager;
 
   res.success = true;
@@ -121,8 +123,8 @@ bool CVOServer::get_velocity(crazyflie::cvo::Request  &req,
                       inRangeVel,
                       inRangePos,
                       inRangeVel);
-  ROS_INFO("sending back response");
   tf::pointEigenToMsg(velCommand, res.velCommand);
+  // tf::pointEigenToMsg(av1VelDes, res.velCommand);
   return true;
 }
 

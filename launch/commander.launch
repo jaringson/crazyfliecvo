@@ -1,0 +1,13 @@
+<launch>
+    <!-- Opti Track -->
+    <node pkg="optitrack_vrpn" type="node"
+        name="optitrack_vrpn_node" output="screen">
+    </node>
+
+    <!-- CVO Server -->
+    <node pkg="crazyflie" type="cvo_server"
+        name="cvo_server" output="screen">
+    </node>
+
+
+</launch>

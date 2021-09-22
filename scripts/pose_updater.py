@@ -268,12 +268,17 @@ if __name__ == '__main__':
             with MotionCommander(scf) as mc:
                 time.sleep(1)
 
-                for _ in range(1000):
+                for _ in range(50):
                     cvo_service = rospy.ServiceProxy('/cvo', cvo)
                     dt = 0.1
                     resp_cvo = cvo_service("/cf1_enu", dt)
+                    print(resp_cvo)
 
-                    mc.start_linear_motion(resp_cvo.x,resp_cvo.y,resp_cvo.z,0.0)
+                    vx = resp_cvo.velCommand.x
+                    vy = resp_cvo.velCommand.y
+                    vz = resp_cvo.velCommand.z
+                    mc.start_linear_motion(vx, vy, vz, 0.0)
+                    # mc.start_linear_motion(0, 0, 0, 0.0)
                     time.sleep(dt)
                 # And we can stop
                 mc.stop()
