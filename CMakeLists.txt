@@ -21,10 +21,10 @@ find_package(yaml-cpp REQUIRED)
 
 add_subdirectory(lib/collision_vo)
 
-add_message_files(
-  FILES
-  array3_1.msg
-)
+# add_message_files(
+#   FILES
+#   array3_1.msg
+# )
 
 add_service_files(
   FILES
