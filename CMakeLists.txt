@@ -17,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 
 find_package(yaml-cpp REQUIRED)
-
+find_package(Boost REQUIRED)
 
 add_subdirectory(lib/collision_vo)
 

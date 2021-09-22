@@ -37,16 +37,22 @@ private:
 
 
   CollisionVO quadCVO_;
-  std::map<std::string, std::vector<Vec3d>> allPositions_;
-  std::map<std::string, std::vector<Vec3d>> allVelocities_;
+  std::map<std::string, Vec3d> allPositions_;
+  // std::map<std::string, Vec3d> allPositions_d1_;
+  std::map<std::string, Vec3d> allVelocities_;
+  std::map<std::string, double> allTimes_;
   std::vector<std::string> mocap_ids_;
 
+  // double beta_;
+  double sigma_{0.05};
+  // double Ts_{1/30.0};
 
+  // void calc_beta();
   bool get_velocity(crazyflie::cvo::Request  &req,
           crazyflie::cvo::Response &res);
   bool add_subscriber(crazyflie::add_subscriber::Request  &req,
           crazyflie::add_subscriber::Response &res);
-  void poseCallback(const geometry_msgs::PoseStamped &msg, const std::string &topic);
+  void poseCallback(boost::shared_ptr<geometry_msgs::PoseStamped const> msg, const std::string &topic);
 };
 
 #endif //CVO_SERVER_H
