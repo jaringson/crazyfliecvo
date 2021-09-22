@@ -1,6 +1,3 @@
 [submodule "lib/collision_vo"]
 	path = lib/collision_vo
 	url = git@magiccvs.byu.edu:jaringson/collision_vo.git
-[submodule "lib/common_cpp"]
-	path = lib/common_cpp
-	url = https://magiccvs.byu.edu/gitlab/Jerel/common_cpp.git
