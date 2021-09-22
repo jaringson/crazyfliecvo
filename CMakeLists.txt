@@ -16,6 +16,9 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 
+find_package(yaml-cpp REQUIRED)
+
+
 add_subdirectory(lib/collision_vo)
 
 add_message_files(
@@ -26,6 +29,7 @@ add_message_files(
 add_service_files(
   FILES
   cvo.srv
+  add_subscriber.srv
 )
 
 generate_messages(

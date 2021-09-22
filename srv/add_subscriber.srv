@@ -1,0 +1,4 @@
+# Service to register id for the service
+string mocap_id
+---
+bool success

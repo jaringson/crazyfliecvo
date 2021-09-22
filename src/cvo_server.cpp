@@ -9,10 +9,26 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
+#include <map>
+#include <string>
+
 CollisionVO quadCVO;
+std::map<std::string, std::vector<Vec3d>> allPositions;
+std::map<std::string, std::vector<Vec3d>> allVelocities;
+std::vector<Vec3d> ids;
+
+bool add_subscriber(crazyflie::cvo::Request  &req,
+         crazyflie::cvo::Response &res)
+{
+
+  ids.push_back(req.mocap_id);
+  res.success = true;
+  return true;
+}
 
 bool add(crazyflie::cvo::Request  &req,
-         crazyflie::cvo::Response &res)
+         crazyflie::cvo::Response &res,
+         nodeHandle)
 {
   Eigen::Vector3d av1Xo;
   tf::pointMsgToEigen(req.pos, av1Xo);
@@ -60,7 +76,8 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "cvo_server");
   ros::NodeHandle n;
 
-  ros::ServiceServer service = n.advertiseService("cvo", add);
+  ros::ServiceServer cvo_service = n.advertiseService("/cvo", add, n);
+  ros::ServiceServer sub_service = n.advertiseService("/add_subscriber", add_subscriber);
   ROS_INFO("CVO Ready.");
   ros::spin();
 
