@@ -21,6 +21,8 @@ find_package(Boost REQUIRED)
 
 add_subdirectory(lib/collision_vo)
 add_subdirectory(lib/common_cpp)
+add_subdirectory(lib/geometry)
+
 
 # add_message_files(
 #   FILES
@@ -47,6 +49,7 @@ catkin_package(
 include_directories(
   include
   lib/collision_vo/include
+  lib/geometry/include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
 )
@@ -57,6 +60,7 @@ add_executable(cvo_server
 target_link_libraries(cvo_server
   collision_vo
   common_cpp
+  geometry
   ${YAML_CPP_LIBRARIES}
   ${catkin_LIBRARIES})
 # add_dependencies(cvo_server crazyflie_gencpp)

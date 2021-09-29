@@ -46,14 +46,26 @@ void CVOServer::poseCallback(boost::shared_ptr<geometry_msgs::PoseStamped const>
   allTimes_[mocap_id] = timeNow;
 
   Vec3d positionD1 = allPositions_[mocap_id];
-  Vec3d position(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
+  Vec3d position(msg->pose.position.x,
+                    msg->pose.position.y,
+                    msg->pose.position.z);
+  Vec4d orientation(msg->pose.orientation.w,
+                    msg->pose.orientation.x,
+                    msg->pose.orientation.y,
+                    msg->pose.orientation.z);
+  quat::Quat<double> quatOrientation(orientation);
 
-  Vec3d velocity = allVelocities_[mocap_id];
+  Vec3d velocity;
+  if(allVelocities_.find(mocap_id) == allVelocities_.end())
+    velocity.setZero();
+  else
+    velocity = allVelocities_[mocap_id];
   double beta = (2.0*sigma_-dt)/(2.0*sigma_+dt);
   velocity = beta * velocity + (1.0-beta)* (position - positionD1) / dt;
 
   allPositions_[mocap_id] = position;
   allVelocities_[mocap_id] = velocity;
+  allQuats_[mocap_id] = quatOrientation;
 }
 
 
@@ -87,6 +99,7 @@ bool CVOServer::get_velocity(crazyflie::cvo::Request  &req,
 
   Eigen::Vector3d av1VelDes = allWPManagers[req.mocap_id].updateWaypointManager(
               Eigen::Map<Vector3d>(av1Xo.data()));
+  // av1VelDes = allQuats_[req.mocap_id].rotp(av1VelDes);
   // tf::pointMsgToEigen(req.velDes, av1VelDes);
   // Vec3d av1VelDes_ = Eigen::Map<Vec3d>(av1VelDes.data());
 
@@ -123,8 +136,10 @@ bool CVOServer::get_velocity(crazyflie::cvo::Request  &req,
                       inRangeVel,
                       inRangePos,
                       inRangeVel);
-  tf::pointEigenToMsg(velCommand, res.velCommand);
-  // tf::pointEigenToMsg(av1VelDes, res.velCommand);
+  tf::pointEigenToMsg(allQuats_[req.mocap_id].rotp(velCommand), res.velCommand);
+  // tf::pointEigenToMsg(allQuats_[req.mocap_id].rotp(av1VelDes), res.velCommand);
+  // ROS_INFO("Number of in Range: %i", int(inRangePos.size()));
+  // std::cout << av1Vo << std::endl << std::endl;
   return true;
 }
 

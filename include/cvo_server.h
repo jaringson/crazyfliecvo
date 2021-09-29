@@ -13,6 +13,7 @@
 
 #include "collision_vo/collision_vo.h"
 #include "common_cpp/common.h"
+#include "geometry/quat.h"
 
 #include "quad_wp_manager.h"
 
@@ -43,6 +44,7 @@ private:
   std::map<std::string, Vec3d> allPositions_;
   // std::map<std::string, Vec3d> allPositions_d1_;
   std::map<std::string, Vec3d> allVelocities_;
+  std::map<std::string, quat::Quat<double>> allQuats_;
   std::map<std::string, double> allTimes_;
   std::vector<std::string> mocap_ids_;
 

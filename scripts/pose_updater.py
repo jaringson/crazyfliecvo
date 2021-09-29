@@ -246,10 +246,12 @@ if __name__ == '__main__':
         rospy.wait_for_service('/cvo')
         add_sub_service = rospy.ServiceProxy('/add_subscriber', add_subscriber)
         waypoints = [1, 0.5, 1, 0,
-                    -1, 0.5, 1, 0,
                     -1, -0.5, 1, 0,
-                    1, -0.5, 1, 0]
+                    1, 0.5, 1, 0,
+                    -1, -0.5, 1, 0]
         resp_add = add_sub_service("/cf1_enu", waypoints)
+        # Sleep to make sure subscriber has time to connect
+        time.sleep(1)
 
         if(resp_add.success):
 
@@ -261,6 +263,7 @@ if __name__ == '__main__':
             # duration = upload_trajectory(cf, trajectory_id, figure8)
             # print('The sequence is {:.1f} seconds long'.format(duration))
             reset_estimator(cf)
+            # run_sequence(cf, trajectory_id, duration)
 
 
 
@@ -268,7 +271,7 @@ if __name__ == '__main__':
             with MotionCommander(scf) as mc:
                 time.sleep(1)
 
-                for _ in range(50):
+                for _ in range(100):
                     cvo_service = rospy.ServiceProxy('/cvo', cvo)
                     dt = 0.1
                     resp_cvo = cvo_service("/cf1_enu", dt)
@@ -278,7 +281,7 @@ if __name__ == '__main__':
                     vy = resp_cvo.velCommand.y
                     vz = resp_cvo.velCommand.z
                     mc.start_linear_motion(vx, vy, vz, 0.0)
-                    # mc.start_linear_motion(0, 0, 0, 0.0)
+                    # mc.start_linear_motion(0, 0, 0.0, 0.0)
                     time.sleep(dt)
                 # And we can stop
                 mc.stop()
