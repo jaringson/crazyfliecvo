@@ -242,9 +242,9 @@ if __name__ == '__main__':
         cf = scf.cf
         trajectory_id = 1
 
-        rospy.Subscriber("/cf1_enu", PoseStamped, callback, cf)
-        rospy.wait_for_service('/cvo')
-        add_sub_service = rospy.ServiceProxy('/add_subscriber', add_subscriber)
+        # rospy.Subscriber("/cf1_enu", PoseStamped, callback, cf)
+        # rospy.wait_for_service('/cvo')
+        # add_sub_service = rospy.ServiceProxy('/add_subscriber', add_subscriber)
         waypoints = [1, 0.5, 1, 0,
                     -1, -0.5, 1, 0,
                     1, 0.5, 1, 0,
@@ -276,6 +276,19 @@ if __name__ == '__main__':
                     dt = 0.1
                     resp_cvo = cvo_service("/cf1_enu", dt)
                     print(resp_cvo)
+
+                    pose = resp_cvo.pose
+                    x = pose.position.x
+                    y = pose.position.y
+                    z = pose.position.z
+                    qw = pose.orientation.w
+                    qx = pose.orientation.x
+                    qy = pose.orientation.y
+                    qz = pose.orientation.z
+                    if send_full_pose:
+                        cf.extpos.send_extpose(x, y, z, qx, qy, qz, qw)
+                    else:
+                        cf.extpos.send_extpos(x, y, z)
 
                     vx = resp_cvo.velCommand.x
                     vy = resp_cvo.velCommand.y

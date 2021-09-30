@@ -2,4 +2,5 @@
 string mocap_id
 float32 dt
 ---
+geometry_msgs/Pose pose
 geometry_msgs/Point velCommand
