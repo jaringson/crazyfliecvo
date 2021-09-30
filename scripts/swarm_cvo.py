@@ -13,6 +13,13 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
 from cflib.utils import uri_helper
 
+from cflib.positioning.motion_commander import MotionCommander
+
+import time
+
+from cflib.crazyflie.swarm import CachedCfFactory
+from cflib.crazyflie.swarm import Swarm
+
 import rospy
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Point
@@ -27,21 +34,21 @@ URI2 = 'radio://0/80/2M/E7E7E7E702'
 
 waypoints1 = [
     1, 0.5, 1, 0,
-    -1, -0.5, 1, 0,
+    1, -0.5, 1, 0,
     1, 0.5, 1, 0,
-    -1, -0.5, 1, 0
+    1, -0.5, 1, 0
 ]
 
 waypoints2 = [
     -1, -0.5, 1, 0,
-    1, 0.5, 1, 0,
+    -1, 0.5, 1, 0,
     -1, -0.5, 1, 0,
-    1, 0.5, 1, 0
+    -1, 0.5, 1, 0
 ]
 
-waypoints_args = {
-    URI1: [waypoints1, 'cf1_enu'],
-    URI2: [waypoints2, 'cf2_enu'],
+cvo_args = {
+    URI1: [waypoints1, '/cf1_enu'],
+    URI2: [waypoints2, '/cf2_enu'],
 }
 
 uris = {
@@ -133,47 +140,55 @@ def wait_for_param_download(scf):
         time.sleep(0.25)
     print('Parameters downloaded for', scf.cf.link_uri)
 
-def run_sequence(scf, args):
+def run_sequence(scf, waypoints, mocap_id, add_sub_service, cvo_service):
     try:
-        print(args)
-        # resp_add = add_sub_service(args., waypoints)
+        resp_add = add_sub_service(mocap_id, waypoints)
+        # Sleep to make sure subscriber has time to connect
+        time.sleep(1)
 
-        # from cflib.positioning.motion_commander import MotionCommander
-        # with MotionCommander(scf) as mc:
-        # for _ in range(100):
-        #     cvo_service = rospy.ServiceProxy('/cvo', cvo)
-        #     dt = 0.1
-        #     resp_cvo = cvo_service("/cf1_enu", dt)
-        #     # print(resp_cvo)
-        #
-        #     pose = resp_cvo.pose
-        #     x = pose.position.x
-        #     y = pose.position.y
-        #     z = pose.position.z
-        #     qw = pose.orientation.w
-        #     qx = pose.orientation.x
-        #     qy = pose.orientation.y
-        #     qz = pose.orientation.z
-        #     if send_full_pose:
-        #         cf.extpos.send_extpose(x, y, z, qx, qy, qz, qw)
-        #     else:
-        #         cf.extpos.send_extpos(x, y, z)
-        #
-        #     vx = resp_cvo.velCommand.x
-        #     vy = resp_cvo.velCommand.y
-        #     vz = resp_cvo.velCommand.z
-        #     mc.start_linear_motion(vx, vy, vz, 0.0)
-        #     # mc.start_linear_motion(0, 0, 0.0, 0.0)
-        #     time.sleep(dt)
-        # # And we can stop
-        # mc.stop()
-        # time.sleep(2)
+        with MotionCommander(scf) as mc:
+            for _ in range(20):
+                dt = 0.1
+                resp_cvo = cvo_service(mocap_id, dt)
+                print(resp_cvo)
+
+                pose = resp_cvo.pose
+                x = pose.position.x
+                y = pose.position.y
+                z = pose.position.z
+                qw = pose.orientation.w
+                qx = pose.orientation.x
+                qy = pose.orientation.y
+                qz = pose.orientation.z
+                if send_full_pose:
+                    cf.extpos.send_extpose(x, y, z, qx, qy, qz, qw)
+                else:
+                    cf.extpos.send_extpos(x, y, z)
+
+                vx = resp_cvo.velCommand.x
+                vy = resp_cvo.velCommand.y
+                vz = resp_cvo.velCommand.z
+                mc.start_linear_motion(vx, vy, vz, 0.0)
+                # mc.start_linear_motion(0, 0, 0.0, 0.0)
+                time.sleep(dt)
+            # And we can stop
+            mc.stop()
+            time.sleep(2)
     except Exception as e:
         print(e)
 
 
 if __name__ == '__main__':
     rospy.init_node('swarm_cvo')
+    add_sub_service = rospy.ServiceProxy('/add_subscriber', add_subscriber)
+    cvo_service = rospy.ServiceProxy('/cvo', cvo)
+
+    for key in cvo_args:
+        # print(key)
+        # print(cvo_args[key])
+        cvo_args[key].append(add_sub_service)
+        cvo_args[key].append(cvo_service)
+        # print(cvo_args[key])
 
     # logging.basicConfig(level=logging.DEBUG)
     cflib.crtp.init_drivers()
@@ -189,4 +204,4 @@ if __name__ == '__main__':
         print('Waiting for parameters to be downloaded...')
         swarm.parallel(wait_for_param_download)
 
-        swarm.parallel(run_sequence, args_dict=seq_args)
+        swarm.sequential(run_sequence, args_dict=cvo_args)

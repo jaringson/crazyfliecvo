@@ -244,7 +244,7 @@ if __name__ == '__main__':
 
         # rospy.Subscriber("/cf1_enu", PoseStamped, callback, cf)
         # rospy.wait_for_service('/cvo')
-        # add_sub_service = rospy.ServiceProxy('/add_subscriber', add_subscriber)
+        add_sub_service = rospy.ServiceProxy('/add_subscriber', add_subscriber)
         waypoints = [1, 0.5, 1, 0,
                     -1, -0.5, 1, 0,
                     1, 0.5, 1, 0,
