@@ -55,7 +55,7 @@ uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E701')
 rigid_body_name = 'cf'
 
 # True: send position and orientation; False: send position only
-send_full_pose = True
+send_full_pose = False
 
 # The trajectory to fly
 # See https://github.com/whoenig/uav_trajectories for a tool to generate
@@ -153,7 +153,7 @@ def reset_estimator(cf):
     cf.param.set_value('kalman.resetEstimation', '0')
 
     time.sleep(1)
-    wait_for_position_estimator(cf)
+    # wait_for_position_estimator(cf)
 
 
 def activate_kalman_estimator(cf):
@@ -229,6 +229,27 @@ def callback(msg, cf):
     else:
         cf.extpos.send_extpos(x, y, z)
 
+def start_kalman(cf, mocap_id, dt, cvo_service):
+    for _ in range(20):
+        resp_cvo = cvo_service(mocap_id, dt)
+        # print(resp_cvo)
+
+        pose = resp_cvo.pose
+        x = pose.position.x
+        y = pose.position.y
+        z = pose.position.z
+        qw = pose.orientation.w
+        qx = pose.orientation.x
+        qy = pose.orientation.y
+        qz = pose.orientation.z
+        if send_full_pose:
+            cf.extpos.send_extpose(x, y, z, qx, qy, qz, qw)
+        else:
+            cf.extpos.send_extpos(x, y, z)
+
+        time.sleep(dt)
+    print("Kalman Filter Primed")
+
 if __name__ == '__main__':
 
     rospy.init_node('pose_updater')
@@ -240,11 +261,13 @@ if __name__ == '__main__':
     with SyncCrazyflie(uri, cf=cf) as scf:
         # print('here')
         cf = scf.cf
+        dt = 0.1
         trajectory_id = 1
 
         # rospy.Subscriber("/cf1_enu", PoseStamped, callback, cf)
-        # rospy.wait_for_service('/cvo')
+        rospy.wait_for_service('/cvo')
         add_sub_service = rospy.ServiceProxy('/add_subscriber', add_subscriber)
+        cvo_service = rospy.ServiceProxy('/cvo', cvo)
         waypoints = [1, 0.5, 1, 0,
                     -1, -0.5, 1, 0,
                     1, 0.5, 1, 0,
@@ -252,6 +275,7 @@ if __name__ == '__main__':
         resp_add = add_sub_service("/cf1_enu", waypoints)
         # Sleep to make sure subscriber has time to connect
         time.sleep(1)
+        start_kalman(cf, "/cf1_enu", dt, cvo_service)
 
         if(resp_add.success):
 
@@ -272,8 +296,6 @@ if __name__ == '__main__':
                 time.sleep(1)
 
                 for _ in range(100):
-                    cvo_service = rospy.ServiceProxy('/cvo', cvo)
-                    dt = 0.1
                     resp_cvo = cvo_service("/cf1_enu", dt)
                     print(resp_cvo)
 

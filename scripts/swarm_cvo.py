@@ -140,15 +140,38 @@ def wait_for_param_download(scf):
         time.sleep(0.25)
     print('Parameters downloaded for', scf.cf.link_uri)
 
+def start_kalman(cf, mocap_id, dt, cvo_service):
+    for _ in range(20):
+        resp_cvo = cvo_service(mocap_id, dt)
+        # print(resp_cvo)
+
+        pose = resp_cvo.pose
+        x = pose.position.x
+        y = pose.position.y
+        z = pose.position.z
+        qw = pose.orientation.w
+        qx = pose.orientation.x
+        qy = pose.orientation.y
+        qz = pose.orientation.z
+        if send_full_pose:
+            cf.extpos.send_extpose(x, y, z, qx, qy, qz, qw)
+        else:
+            cf.extpos.send_extpos(x, y, z)
+
+        time.sleep(dt)
+    print("Kalman Filter Primed")
+
 def run_sequence(scf, waypoints, mocap_id, add_sub_service, cvo_service):
     try:
+        dt = 0.1
+        cf = scf.cf
         resp_add = add_sub_service(mocap_id, waypoints)
         # Sleep to make sure subscriber has time to connect
         time.sleep(1)
+        start_kalman(cf, mocap_id, dt, cvo_service)
 
         with MotionCommander(scf) as mc:
             for _ in range(20):
-                dt = 0.1
                 resp_cvo = cvo_service(mocap_id, dt)
                 print(resp_cvo)
 

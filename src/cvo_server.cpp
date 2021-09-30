@@ -140,6 +140,17 @@ bool CVOServer::get_velocity(crazyflie::cvo::Request  &req,
   // tf::pointEigenToMsg(allQuats_[req.mocap_id].rotp(av1VelDes), res.velCommand);
   // ROS_INFO("Number of in Range: %i", int(inRangePos.size()));
   // std::cout << av1Vo << std::endl << std::endl;
+  geometry_msgs::Point position;
+  tf::pointEigenToMsg(av1Xo, position);
+  geometry_msgs::Quaternion orientation;
+  Eigen::Quaterniond quat;
+  quat.w() = allQuats_[req.mocap_id].w();
+  quat.x() = allQuats_[req.mocap_id].x();
+  quat.y() = allQuats_[req.mocap_id].y();
+  quat.z() = allQuats_[req.mocap_id].z();
+  tf::quaternionEigenToMsg(quat, orientation);
+  res.pose.position = position;
+  res.pose.orientation = orientation;
   return true;
 }
 
