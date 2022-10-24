@@ -20,7 +20,7 @@ public:
 
   void load(const std::string& filename,
     std::vector<double> loaded_wps,
-    const double& max_velocity=0);
+    const double& max_velocity=0.5);
 
   Vector3d updateWaypointManager(Vector3d position);
 

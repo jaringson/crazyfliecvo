@@ -138,6 +138,7 @@ bool CVOServer::get_velocity(crazyflie::cvo::Request  &req,
                       inRangeVel);
   tf::pointEigenToMsg(allQuats_[req.mocap_id].rotp(velCommand), res.velCommand);
   // tf::pointEigenToMsg(allQuats_[req.mocap_id].rotp(av1VelDes), res.velCommand);
+  // tf::pointEigenToMsg(av1VelDes, res.velCommand);
   // ROS_INFO("Number of in Range: %i", int(inRangePos.size()));
   // std::cout << av1Vo << std::endl << std::endl;
   geometry_msgs::Point position;

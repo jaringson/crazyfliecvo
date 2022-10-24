@@ -42,6 +42,8 @@ Vector3d WPManager::updateWaypointManager(Vector3d position)
   // Vector3d positionCommand;
   double psiCommand;
 
+  // std::cout << "pos wp mang: " << position << std::endl;
+
   // if (!initialized_)
   // {
   //   initialized_ = true;
@@ -52,8 +54,10 @@ Vector3d WPManager::updateWaypointManager(Vector3d position)
 
   // Find the distance to the desired waypoint
   Vector4d current_waypoint = waypoints_.block<4,1>(0, current_waypoint_id_);
+  // std::cout << "current_wp: " << current_waypoint << std::endl;
   Vector3d error;
   error = current_waypoint.segment<3>(0) - position;
+  // std::cout << "error: " << error << std::endl;
   // error(0) = common::wrapAngle(current_waypoint(0) - xhat_.q.yaw(), 2.0 * M_PI);
   // error(3) = 0;
 

@@ -32,32 +32,55 @@ send_full_pose = True
 URI1 = 'radio://0/80/2M/E7E7E7E701'
 URI2 = 'radio://0/80/2M/E7E7E7E702'
 
+URI3 = 'radio://0/80/2M/E7E7E7E703'
+URI4 = 'radio://0/80/2M/E7E7E7E704'
+
 waypoints1 = [
-    1, 0.5, 1, 0,
-    1, -0.5, 1, 0,
-    1, 0.5, 1, 0,
-    1, -0.5, 1, 0
+    1.0, 1.0, 1.0, 0,
+    -1.0, -1.0, 1.0, 0,
+    1.0, 1.0, 1.0, 0,
+    -1.0, -1.0, 1.0, 0
 ]
 
+# waypoints2 = [
+#     0.33, -0.5, 1.0, 0,
+#     0.33, 0.5, 1.0, 0,
+#     0.33, -0.5, 1.0, 0,
+#     0.33, 0.5, 1.0, 0
+# ]
+#
+# waypoints3 = [
+#     -0.33, -0.5, 1.0, 0,
+#     -0.33, 0.5, 1.0, 0,
+#     -0.33, -0.5, 1.0, 0,
+#     -0.33, 0.5, 1.0, 0
+# ]
+
 waypoints2 = [
-    -1, -0.5, 1, 0,
-    -1, 0.5, 1, 0,
-    -1, -0.5, 1, 0,
-    -1, 0.5, 1, 0
+    1.0, -1.0, 1.0, 0,
+    -1.0, 1.0, 1.0, 0,
+    1.0, -1.0, 1.0, 0,
+    -1.0, 1.0, 1.0, 0
 ]
 
 cvo_args = {
     URI1: [waypoints1, '/cf1_enu'],
-    URI2: [waypoints2, '/cf2_enu'],
+    # URI2: [waypoints2, '/cf2_enu'],
+    # URI3: [waypoints3, '/cf3_enu'],
+    # URI4: [waypoints4, '/cf4_enu'],
 }
 
 uris = {
     URI1,
-    URI2
+    # URI2,
+    # URI3,
+    # URI4,
 }
 
-def wait_for_position_estimator(scf):
+def wait_for_position_estimator(scf, mocap_id, cvo_service):
     print('Waiting for estimators to find position...')
+
+    dt = 0.1
 
     log_config = LogConfig(name='Kalman Variance', period_in_ms=500)
     log_config.add_variable('kalman.varPX', 'float')
@@ -72,6 +95,24 @@ def wait_for_position_estimator(scf):
 
     with SyncLogger(scf, log_config) as logger:
         for log_entry in logger:
+
+            # print(mocap_id)
+            resp_cvo = cvo_service(mocap_id, dt)
+            # print(resp_cvo)
+
+            pose = resp_cvo.pose
+            x = pose.position.x
+            y = pose.position.y
+            z = pose.position.z
+            qw = pose.orientation.w
+            qx = pose.orientation.x
+            qy = pose.orientation.y
+            qz = pose.orientation.z
+            if send_full_pose:
+                scf.cf.extpos.send_extpose(x, y, z, qx, qy, qz, qw)
+            else:
+                scf.cf.extpos.send_extpos(x, y, z)
+
             data = log_entry[1]
 
             var_x_history.append(data['kalman.varPX'])
@@ -110,29 +151,29 @@ def _sqrt(a):
 
 
 
-def reset_estimator(cf):
-    cf.param.set_value('kalman.resetEstimation', '1')
+def reset_estimator(scf, waypoints, mocap_id, add_sub_service, cvo_service):
+    scf.cf.param.set_value('kalman.resetEstimation', '1')
     time.sleep(0.1)
-    cf.param.set_value('kalman.resetEstimation', '0')
+    scf.cf.param.set_value('kalman.resetEstimation', '0')
 
     time.sleep(1)
-    wait_for_position_estimator(cf)
+    wait_for_position_estimator(scf, mocap_id, cvo_service)
 
 
-def activate_kalman_estimator(cf):
-    cf.param.set_value('stabilizer.estimator', '2')
+def activate_kalman_estimator(scf):
+    scf.cf.param.set_value('stabilizer.estimator', '2')
 
     # Set the std deviation for the quaternion data pushed into the
     # kalman filter. The default value seems to be a bit too low.
-    cf.param.set_value('locSrv.extQuatStdDev', 0.06)
+    scf.cf.param.set_value('locSrv.extQuatStdDev', 0.06)
 
 
-def activate_high_level_commander(cf):
-    cf.param.set_value('commander.enHighLevel', '1')
+def activate_high_level_commander(scf):
+    scf.cf.param.set_value('commander.enHighLevel', '1')
 
 
-def activate_controller(cf):
-    cf.param.set_value('stabilizer.controller', '1')
+def activate_controller(scf):
+    scf.cf.param.set_value('stabilizer.controller', '1')
 
 
 def wait_for_param_download(scf):
@@ -141,7 +182,7 @@ def wait_for_param_download(scf):
     print('Parameters downloaded for', scf.cf.link_uri)
 
 def start_kalman(cf, mocap_id, dt, cvo_service):
-    for _ in range(20):
+    for _ in range(5):
         resp_cvo = cvo_service(mocap_id, dt)
         # print(resp_cvo)
 
@@ -165,15 +206,48 @@ def run_sequence(scf, waypoints, mocap_id, add_sub_service, cvo_service):
     try:
         dt = 0.1
         cf = scf.cf
-        resp_add = add_sub_service(mocap_id, waypoints)
+        # resp_add = add_sub_service(mocap_id, waypoints)
         # Sleep to make sure subscriber has time to connect
         time.sleep(1)
         start_kalman(cf, mocap_id, dt, cvo_service)
 
+        resp_cvo = cvo_service(mocap_id, dt)
+        print(resp_cvo)
+
+
+        end_time = time.time() + 1.0
+
+        # while time.time() < end_time:
+        #     resp_cvo = cvo_service(mocap_id, dt)
+        #     print(resp_cvo)
+        #
+        #     pose = resp_cvo.pose
+        #     x = pose.position.x
+        #     y = pose.position.y
+        #     z = pose.position.z
+        #     qw = pose.orientation.w
+        #     qx = pose.orientation.x
+        #     qy = pose.orientation.y
+        #     qz = pose.orientation.z
+        #     if send_full_pose:
+        #         cf.extpos.send_extpose(x, y, z, qx, qy, qz, qw)
+        #     else:
+        #         cf.extpos.send_extpos(x, y, z)
+        #     vx = 0.0 #2*resp_cvo.velCommand.x
+        #     vy = 0.0 #2*resp_cvo.velCommand.y
+        #     vz = 1.0*resp_cvo.velCommand.z
+        #
+        #     cf.commander.send_velocity_world_setpoint(vx,
+        #                                         vy,
+        #                                         vz, 0)
+        #     time.sleep(0.1)
+
         with MotionCommander(scf) as mc:
-            for _ in range(20):
+            # mc.up(5.5)
+            time.sleep(1)
+            for _ in range(100):
                 resp_cvo = cvo_service(mocap_id, dt)
-                print(resp_cvo)
+                # print(resp_cvo)
 
                 pose = resp_cvo.pose
                 x = pose.position.x
@@ -191,12 +265,23 @@ def run_sequence(scf, waypoints, mocap_id, add_sub_service, cvo_service):
                 vx = resp_cvo.velCommand.x
                 vy = resp_cvo.velCommand.y
                 vz = resp_cvo.velCommand.z
+                # print(vx,vy,vz)
+                # mc.start_linear_motion(0.0, 0.0, vz, 0.0)
+                # mc.start_linear_motion(vx*0.5, vy*0.5, vz, 0.0)
                 mc.start_linear_motion(vx, vy, vz, 0.0)
-                # mc.start_linear_motion(0, 0, 0.0, 0.0)
+
+                # cf.commander.send_velocity_world_setpoint(vx,
+                #                                     vy,
+                #                                     vz, 0)
+
+                # cf.commander.send_velocity_world_setpoint(0,
+                #                                     0,
+                #                                     vz, 0)
+                # cf.commander.send_position_setpoint(0,0,0,0)
                 time.sleep(dt)
             # And we can stop
             mc.stop()
-            time.sleep(2)
+            time.sleep(1)
     except Exception as e:
         print(e)
 
@@ -211,6 +296,7 @@ if __name__ == '__main__':
         # print(cvo_args[key])
         cvo_args[key].append(add_sub_service)
         cvo_args[key].append(cvo_service)
+        resp_add = add_sub_service(cvo_args[key][1], cvo_args[key][0])
         # print(cvo_args[key])
 
     # logging.basicConfig(level=logging.DEBUG)
@@ -218,13 +304,13 @@ if __name__ == '__main__':
 
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:
-        swarm.parallel(activate_kalman_estimator)
-        swarm.parallel(activate_high_level_commander)
-        swarm.parallel(activate_controller)
-        # swarm.parallel(reset_estimator)
+        swarm.sequential(activate_kalman_estimator)
+        swarm.sequential(activate_high_level_commander)
+        swarm.sequential(activate_controller)
+        swarm.parallel(reset_estimator, args_dict=cvo_args)
 
 
-        print('Waiting for parameters to be downloaded...')
-        swarm.parallel(wait_for_param_download)
+        # print('Waiting for parameters to be downloaded...')
+        # swarm.parallel(wait_for_param_download)
 
-        swarm.sequential(run_sequence, args_dict=cvo_args)
+        swarm.parallel(run_sequence, args_dict=cvo_args)
