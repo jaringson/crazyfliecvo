@@ -10,4 +10,14 @@
     </node>
 
 
+    <!-- Mocap Estimation -->
+    <node name="estimator1" type="ekf_ros" pkg="dragonfly" output="screen">
+      <param name="id" value="1"/>
+    </node>
+
+    <!-- Mocap Estimation -->
+    <!-- <node name="estimator2" type="ekf_ros" pkg="dragonfly" output="screen">
+      <param name="id" value="2"/>
+    </node> -->
+
 </launch>
