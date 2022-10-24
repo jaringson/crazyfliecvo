@@ -64,7 +64,7 @@ waypoints2 = [
 ]
 
 cvo_args = {
-    URI1: [waypoints1, '/cf1_enu'],
+    URI1: [waypoints1, '/xhat1'],
     # URI2: [waypoints2, '/cf2_enu'],
     # URI3: [waypoints3, '/cf3_enu'],
     # URI4: [waypoints4, '/cf4_enu'],

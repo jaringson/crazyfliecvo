@@ -21,8 +21,8 @@ alphaQ_vel: 0.5
 sigmaQ_jrk: 0.2
 alphaQ_jrk: 0.5
 
-sigmaR_pos: 0.0
-sigmaR_vel: 0.0
+sigmaR_pos: 0.01
+sigmaR_vel: 0.01
 
 add_uncertainty: false
 

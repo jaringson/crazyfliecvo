@@ -34,34 +34,38 @@ CVOServer::~CVOServer()
 
 
 
-void CVOServer::poseCallback(boost::shared_ptr<geometry_msgs::PoseStamped const> msg, const std::string &mocap_id)
+void CVOServer::poseCallback(boost::shared_ptr<crazyflie::xhat const> msg, const std::string &mocap_id)
 {
 
   double timeNow = ros::Time::now().toSec();
-  double dt;
-  if(allTimes_.find(mocap_id) == allTimes_.end())
-    dt = 1/60.0;
-  else
-    dt = timeNow - allTimes_[mocap_id];
+  // double dt;
+  // if(allTimes_.find(mocap_id) == allTimes_.end())
+  //   dt = 1/60.0;
+  // else
+  //   dt = timeNow - allTimes_[mocap_id];
   allTimes_[mocap_id] = timeNow;
 
   Vec3d positionD1 = allPositions_[mocap_id];
-  Vec3d position(msg->pose.position.x,
-                    msg->pose.position.y,
-                    msg->pose.position.z);
-  Vec4d orientation(msg->pose.orientation.w,
-                    msg->pose.orientation.x,
-                    msg->pose.orientation.y,
-                    msg->pose.orientation.z);
+  Vec3d position(msg->p[0],
+                    msg->p[1],
+                    msg->p[2]);
+  Vec4d orientation(msg->q[0],
+                    msg->q[1],
+                    msg->q[2],
+                    msg->q[3]);
   quat::Quat<double> quatOrientation(orientation);
 
-  Vec3d velocity;
-  if(allVelocities_.find(mocap_id) == allVelocities_.end())
-    velocity.setZero();
-  else
-    velocity = allVelocities_[mocap_id];
-  double beta = (2.0*sigma_-dt)/(2.0*sigma_+dt);
-  velocity = beta * velocity + (1.0-beta)* (position - positionD1) / dt;
+  Vec3d velocity(msg->v[0],
+                    msg->v[1],
+                    msg->v[2]);
+
+  // Vec3d velocity;
+  // if(allVelocities_.find(mocap_id) == allVelocities_.end())
+  //   velocity.setZero();
+  // else
+  //   velocity = allVelocities_[mocap_id];
+  // double beta = (2.0*sigma_-dt)/(2.0*sigma_+dt);
+  // velocity = beta * velocity + (1.0-beta)* (position - positionD1) / dt;
 
   allPositions_[mocap_id] = position;
   allVelocities_[mocap_id] = velocity;
@@ -75,7 +79,7 @@ bool CVOServer::add_subscriber(crazyflie::add_subscriber::Request  &req,
 
   mocap_ids_.push_back(req.mocap_id);
 
-  ros::Subscriber pose_sub = nh_.subscribe<geometry_msgs::PoseStamped>(req.mocap_id,
+  ros::Subscriber pose_sub = nh_.subscribe<crazyflie::xhat>(req.mocap_id,
       10,
       boost::bind(&CVOServer::poseCallback, this, _1, req.mocap_id));
 

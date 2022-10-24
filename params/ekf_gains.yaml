@@ -1,0 +1,62 @@
+## Post-Process Information
+bag_name: "/home/jaron/rosbag/test.bag"
+# bag_name: "/home/superjax/rosbag/roscopter_carry/carry2.bag"
+# bag_name: "/home/superjax/rosbag/roscopter_carry/carry3.bag"
+imu_topic: "/rf/imu"
+start_time: 10
+duration: 100000
+
+## Is_flying checks
+enable_arm_check: false # require armed before checking for is_flying
+is_flying_threshold: 10.5 # if accel measurement exceed this magnitude, set is_flying
+
+## Logging
+log_prefix: "/tmp/ekf/"
+enable_log: true
+
+## Measurement Processing
+enable_out_of_order: false
+use_truth: false
+use_gnss: true
+use_alt: true
+use_zero_vel: true
+
+R_zero_vel: [0.001, 0.001, 0.001,  # vel
+             0.01]                 # yaw
+
+## Initial Uncertainty
+P0: [1, 1, 1,
+     1, 1, 1,
+     1, 1, 1,
+     1, 1, 1,
+     1, 1, 1,
+     1, 1, 1]
+
+## Additive Process Noise
+Qx: [0.01, 0.01, 0.01,       # pos
+     0.01, 0.01, 0.01,       # att
+     2, 2, 2,       # vel
+     2, 2, 2,    # omega
+     4, 4, 4,       # accel
+     10, 10, 10]       # jerk
+
+# Constant Parameeters
+p_b2g: [0, 0, 0]
+
+# Initial State
+ref_lla: [40.24632, -111.646882, 1415.0]
+ref_heading: 0.0
+x0: [0, 0, 0,       # pos
+     1, 0, 0, 0]    # att
+
+
+accel_noise_stdev: 0.001
+accel_noise_stdev2: 0.001
+omega_noise_stdev: 0.001
+
+## Sensor Noise
+# gyro_noise_stdev: 0.02
+position_noise_stdev: 0.0001
+attitude_noise_stdev: 0.001
+theta_noise_stdev: 0.0001
+# alt_noise_stdev: 10

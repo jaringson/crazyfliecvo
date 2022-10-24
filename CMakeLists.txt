@@ -35,6 +35,12 @@ add_service_files(
   add_subscriber.srv
 )
 
+add_message_files(
+  FILES
+  xhat.msg
+)
+
+
 generate_messages(
   DEPENDENCIES
   std_msgs
@@ -54,9 +60,25 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
 )
 
+add_library(ekf
+  src/ekf/state.cpp
+  src/ekf/dynamics.cpp
+  src/ekf/ekf.cpp
+  src/ekf/meas.cpp
+  src/ekf/log.cpp
+)
+
+target_link_libraries(ekf ${YAML_CPP_LIBRARIES} common_cpp geometry stdc++fs)
+
+add_executable(ekf_ros src/ekf/ekf_ros.cpp)
+target_link_libraries(ekf_ros ekf ${catkin_LIBRARIES})
+add_dependencies(ekf_ros ${catkin_EXPORTED_TARGETS})
+
+
 add_executable(cvo_server
   src/cvo_server.cpp
-  src/quad_wp_manager.cpp)
+  src/quad_wp_manager.cpp
+)
 target_link_libraries(cvo_server
   collision_vo
   common_cpp

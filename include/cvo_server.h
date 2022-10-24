@@ -20,6 +20,8 @@
 #include <map>
 #include <string>
 
+#include <crazyflie/xhat.h>
+
 
 using namespace Eigen;
 
@@ -58,7 +60,7 @@ private:
           crazyflie::cvo::Response &res);
   bool add_subscriber(crazyflie::add_subscriber::Request  &req,
           crazyflie::add_subscriber::Response &res);
-  void poseCallback(boost::shared_ptr<geometry_msgs::PoseStamped const> msg, const std::string &topic);
+  void poseCallback(boost::shared_ptr<crazyflie::xhat const>, const std::string &topic);
 };
 
 #endif //CVO_SERVER_H
