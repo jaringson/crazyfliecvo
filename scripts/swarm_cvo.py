@@ -1,8 +1,11 @@
+#!/usr/bin/env python3
+
 import asyncio
 import math
 import time
 import xml.etree.cElementTree as ET
 from threading import Thread
+from IPython.core.debugger import set_trace
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
@@ -26,6 +29,8 @@ from geometry_msgs.msg import Point
 
 from crazyflie.srv import *
 
+from cvo_server import CVOServer
+
 send_full_pose = True
 
 # Change uris and sequences according to your setup
@@ -34,47 +39,58 @@ URI2 = 'radio://0/80/2M/E7E7E7E702'
 
 URI3 = 'radio://0/80/2M/E7E7E7E703'
 URI4 = 'radio://0/80/2M/E7E7E7E704'
+URI5 = 'radio://0/100/2M/E7E7E7E705'
 
 waypoints1 = [
     1.0, 1.0, 1.0, 0,
     -1.0, -1.0, 1.0, 0,
     1.0, 1.0, 1.0, 0,
-    -1.0, -1.0, 1.0, 0
+    -1.0, -1.0,-1.0, 0
 ]
 
-# waypoints2 = [
-#     0.33, -0.5, 1.0, 0,
-#     0.33, 0.5, 1.0, 0,
-#     0.33, -0.5, 1.0, 0,
-#     0.33, 0.5, 1.0, 0
-# ]
-#
-# waypoints3 = [
-#     -0.33, -0.5, 1.0, 0,
-#     -0.33, 0.5, 1.0, 0,
-#     -0.33, -0.5, 1.0, 0,
-#     -0.33, 0.5, 1.0, 0
-# ]
-
 waypoints2 = [
+    -1.0, 1.0, 1.0, 0,
+    1.0, -1.0, 1.0, 0,
+    -1.0, 1.0, 1.0, 0,
+    1.0, -1.0, 1.0, 0,
+]
+
+waypoints3 = [
+    -1.0, -1.0, 1.0, 0,
+    1.0, 1.0, 1.0, 0,
+    -1.0, -1.0, 1.0, 0,
+    1.0, 1.0, 1.0, 0
+]
+
+waypoints4 = [
     1.0, -1.0, 1.0, 0,
     -1.0, 1.0, 1.0, 0,
     1.0, -1.0, 1.0, 0,
     -1.0, 1.0, 1.0, 0
 ]
 
+waypoints5 = [
+    1.0, 0.0, 1.0, 0,
+    -1.0, 0.0, 1.0, 0,
+    1.0, 0.0, 1.0, 0,
+    -1.0, 0.0, 1.0, 0
+]
+
+
 cvo_args = {
-    URI1: [waypoints1, '/xhat1'],
-    # URI2: [waypoints2, '/cf2_enu'],
+    # URI5: [waypoints1, '/cf5_enu'],
+    URI2: [waypoints2, '/cf2_enu'],
     # URI3: [waypoints3, '/cf3_enu'],
-    # URI4: [waypoints4, '/cf4_enu'],
+    URI4: [waypoints4, '/cf4_enu'],
+    # URI5: [waypoints5, '/xhat5'],
 }
 
 uris = {
-    URI1,
-    # URI2,
+    # URI5,
+    URI2,
     # URI3,
-    # URI4,
+    URI4,
+    # URI5,
 }
 
 def wait_for_position_estimator(scf, mocap_id, cvo_service):
@@ -91,9 +107,10 @@ def wait_for_position_estimator(scf, mocap_id, cvo_service):
     var_x_history = [1000] * 10
     var_z_history = [1000] * 10
 
-    threshold = 0.001
+    threshold = 0.01
 
     with SyncLogger(scf, log_config) as logger:
+        # set_trace()
         for log_entry in logger:
 
             # print(mocap_id)
@@ -129,14 +146,14 @@ def wait_for_position_estimator(scf, mocap_id, cvo_service):
             min_z = min(var_z_history)
             max_z = max(var_z_history)
 
-            # print("{} {} {}".
-            #       format(max_x - min_x, max_y - min_y, max_z - min_z))
+            # print("{} {} {}: ".
+            #       format(max_x - min_x, max_y - min_y, max_z - min_z), mocap_id)
 
             if (max_x - min_x) < threshold and (
                     max_y - min_y) < threshold and (
                     max_z - min_z) < threshold:
                 break
-    print('Done waiting')
+    print('Done waiting ' , mocap_id)
 
 
 def _sqrt(a):
@@ -165,7 +182,8 @@ def activate_kalman_estimator(scf):
 
     # Set the std deviation for the quaternion data pushed into the
     # kalman filter. The default value seems to be a bit too low.
-    scf.cf.param.set_value('locSrv.extQuatStdDev', 0.06)
+    scf.cf.param.set_value('locSrv.extQuatStdDev', 0.1)
+    # scf.cf.param.set_value('locSrv.extPosStdDev', 0.06)
 
 
 def activate_high_level_commander(scf):
@@ -173,6 +191,7 @@ def activate_high_level_commander(scf):
 
 
 def activate_controller(scf):
+    # scf.cf.param.set_value('stabilizer.controller', '0')
     scf.cf.param.set_value('stabilizer.controller', '1')
 
 
@@ -204,7 +223,7 @@ def start_kalman(cf, mocap_id, dt, cvo_service):
 
 def run_sequence(scf, waypoints, mocap_id, add_sub_service, cvo_service):
     try:
-        dt = 0.1
+        dt = 0.2
         cf = scf.cf
         # resp_add = add_sub_service(mocap_id, waypoints)
         # Sleep to make sure subscriber has time to connect
@@ -212,11 +231,11 @@ def run_sequence(scf, waypoints, mocap_id, add_sub_service, cvo_service):
         start_kalman(cf, mocap_id, dt, cvo_service)
 
         resp_cvo = cvo_service(mocap_id, dt)
-        print(resp_cvo)
+        # print(resp_cvo)
 
 
-        end_time = time.time() + 1.0
-
+        # end_time = time.time() + 2.0
+        #
         # while time.time() < end_time:
         #     resp_cvo = cvo_service(mocap_id, dt)
         #     print(resp_cvo)
@@ -245,9 +264,10 @@ def run_sequence(scf, waypoints, mocap_id, add_sub_service, cvo_service):
         with MotionCommander(scf) as mc:
             # mc.up(5.5)
             time.sleep(1)
-            for _ in range(100):
+            for _ in range(400):
+                # start = time.time()
                 resp_cvo = cvo_service(mocap_id, dt)
-                # print(resp_cvo)
+                # print(time.time() - start)
 
                 pose = resp_cvo.pose
                 x = pose.position.x
@@ -262,13 +282,14 @@ def run_sequence(scf, waypoints, mocap_id, add_sub_service, cvo_service):
                 else:
                     cf.extpos.send_extpos(x, y, z)
 
-                vx = resp_cvo.velCommand.x
-                vy = resp_cvo.velCommand.y
-                vz = resp_cvo.velCommand.z
-                # print(vx,vy,vz)
-                # mc.start_linear_motion(0.0, 0.0, vz, 0.0)
-                # mc.start_linear_motion(vx*0.5, vy*0.5, vz, 0.0)
+                vx = resp_cvo.velCommand.x*1.0
+                vy = resp_cvo.velCommand.y*1.0
+                vz = resp_cvo.velCommand.z*1.0
+                if mocap_id == "/cf4_enu":
+                    print("command vel: ", vx,vy,vz)
                 mc.start_linear_motion(vx, vy, vz, 0.0)
+                # mc.start_linear_motion(vx*0.5, vy*0.5, vz, 0.0)
+                # mc.start_linear_motion(vx, vy, vz, 0.0)
 
                 # cf.commander.send_velocity_world_setpoint(vx,
                 #                                     vy,
@@ -288,10 +309,12 @@ def run_sequence(scf, waypoints, mocap_id, add_sub_service, cvo_service):
 
 if __name__ == '__main__':
     rospy.init_node('swarm_cvo')
+    rospy.wait_for_service('/add_subscriber')
     add_sub_service = rospy.ServiceProxy('/add_subscriber', add_subscriber)
+    rospy.wait_for_service('/cvo')
     cvo_service = rospy.ServiceProxy('/cvo', cvo)
 
-    for key in cvo_args:
+    for key in cvo_args.keys():
         # print(key)
         # print(cvo_args[key])
         cvo_args[key].append(add_sub_service)
