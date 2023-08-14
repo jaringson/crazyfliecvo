@@ -60,19 +60,19 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
 )
 
-add_library(ekf
-  src/ekf/state.cpp
-  src/ekf/dynamics.cpp
-  src/ekf/ekf.cpp
-  src/ekf/meas.cpp
-  src/ekf/log.cpp
-)
+# add_library(ekf
+#   src/ekf/state.cpp
+#   src/ekf/dynamics.cpp
+#   src/ekf/ekf.cpp
+#   src/ekf/meas.cpp
+#   src/ekf/log.cpp
+# )
 
-target_link_libraries(ekf ${YAML_CPP_LIBRARIES} common_cpp geometry stdc++fs)
+# target_link_libraries(ekf ${YAML_CPP_LIBRARIES} common_cpp geometry stdc++fs)
 
-add_executable(ekf_ros src/ekf/ekf_ros.cpp)
-target_link_libraries(ekf_ros ekf ${catkin_LIBRARIES})
-add_dependencies(ekf_ros ${catkin_EXPORTED_TARGETS})
+# add_executable(ekf_ros src/ekf/ekf_ros.cpp)
+# target_link_libraries(ekf_ros ekf ${catkin_LIBRARIES})
+# add_dependencies(ekf_ros ${catkin_EXPORTED_TARGETS})
 
 
 add_executable(cvo_server
