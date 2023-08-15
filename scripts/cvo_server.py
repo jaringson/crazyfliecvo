@@ -13,7 +13,7 @@ import params
 import rospy
 import rospkg
 from crazyflie.srv import * #add_subscriber, add_subscriberResponse
-from crazyflie.msg import xhat
+from crazyflie.msg import xhat, float32_1d
 from geometry_msgs.msg import Pose, Point, PoseStamped
 import copy
 import math
@@ -144,6 +144,11 @@ class CVOServer:
         inRangeUncertaintyPos = []
         inRangeUncertaintyVel = []
 
+        inRangePos_msg = []
+        inRangeVel_msg = []
+        inRangeUncPos_msg = []
+        inRangeUncVel_msg = []
+
         for mocap_id in self.allPositions_.keys():
             if req.mocap_id != mocap_id:
                 # print(mocap_id, req.mocap_id)
@@ -151,25 +156,40 @@ class CVOServer:
                 if norm(av1Xo - self.allPositions_[mocap_id]) < self.range:
 
                     # print(self.allPositions_[mocap_id], av1Xo)
-                    inRangePos.append(copy.copy(self.allPositions_[mocap_id]))
-                    inRangeVel.append(copy.copy(self.allVelocities_[mocap_id]))
+                    # inRangePos.append(copy.copy(self.allPositions_[mocap_id]))
+                    # inRangeVel.append(copy.copy(self.allVelocities_[mocap_id]))
+                    #
+                    # inRangeUncertaintyPos.append(self.allUncertaintyPos_[mocap_id])
+                    # inRangeUncertaintyVel.append(self.allUncertaintyVel_[mocap_id])
+                    inRangePos_1d = float32_1d()
+                    inRangePos_1d.array = self.allPositions_[mocap_id]
+                    inRangePos_msg.append(inRangePos_1d)
 
-                    inRangeUncertaintyPos.append(self.allUncertaintyPos_[mocap_id])
-                    inRangeUncertaintyVel.append(self.allUncertaintyVel_[mocap_id])
+                    inRangeVel_1d = float32_1d()
+                    inRangeVel_1d.array = self.allVelocities_[mocap_id]
+                    inRangeVel_msg.append(inRangeVel_1d)
+
+                    inRangeUncPos_1d = float32_1d()
+                    inRangeUncPos_1d.array = self.allUncertaintyPos_[mocap_id]
+                    inRangeUncPos_msg.append(inRangeUncPos_1d)
+
+                    inRangeUncVel_1d = float32_1d()
+                    inRangeUncVel_1d.array = self.allUncertaintyVel_[mocap_id]
+                    inRangeUncVel_msg.append(inRangeUncVel_1d)
 
         # print(av1VelDes)
-        cvoGekko = CVOGekko(params)
-        sx, sy, sz = cvoGekko.get_best_vel(av1Xo, av1Vo, av1VelDes,
-                    inRangePos, inRangeVel,
-                    inRangeUncertaintyPos, inRangeUncertaintyVel)
+        # cvoGekko = CVOGekko(params)
+        # sx, sy, sz = cvoGekko.get_best_vel(av1Xo, av1Vo, av1VelDes,
+        #             inRangePos, inRangeVel,
+        #             inRangeUncertaintyPos, inRangeUncertaintyVel)
 
 
         quat = self.allQuats_[req.mocap_id]
-        velCommand = copy.copy(np.array([[sx], [sy], [sz]]))
+        # velCommand = copy.copy(np.array([[sx], [sy], [sz]]))
         # if req.mocap_id == '/cf5_enu':
         #     print(velCommand)
         # velCommand = copy.copy(av1VelDes)
-        velCommandBody = self.rotp(quat, velCommand)
+        # velCommandBody = self.rotp(quat, velCommand)
 
         pose = Pose()
         point = Point()
@@ -185,16 +205,21 @@ class CVOServer:
         pose.orientation.y = quat[2,0]
         pose.orientation.z = quat[3,0]
 
-        point.x = self.truncate(velCommandBody[0,0],3)
-        point.y = self.truncate(velCommandBody[1,0],3)
-        point.z = self.truncate(velCommandBody[2,0],3)
+        # point.x = self.truncate(velCommandBody[0,0],3)
+        # point.y = self.truncate(velCommandBody[1,0],3)
+        # point.z = self.truncate(velCommandBody[2,0],3)
 
 
-        return cvoResponse(pose, point)
+
+
+        return cvoResponse(pose,
+                    av1Xo, av1Vo, av1VelDes,
+                    inRangePos_msg, inRangeVel_msg,
+                    inRangeUncPos_msg, inRangeUncVel_msg)
 
 
 if __name__ == "__main__":
-    # rospy.init_node('cvo_server')
+    rospy.init_node('cvo_server')
     cvoServer = CVOServer()
 
     rospy.spin()

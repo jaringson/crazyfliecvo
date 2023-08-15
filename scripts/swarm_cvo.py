@@ -29,7 +29,10 @@ from geometry_msgs.msg import Point
 
 from crazyflie.srv import *
 
-from cvo_server import CVOServer
+import params
+from cvo_gekko import CVOGekko
+from utils import rotp
+import numpy as np
 
 send_full_pose = True
 
@@ -282,11 +285,27 @@ def run_sequence(scf, waypoints, mocap_id, add_sub_service, cvo_service):
                 else:
                     cf.extpos.send_extpos(x, y, z)
 
-                vx = resp_cvo.velCommand.x*1.0
-                vy = resp_cvo.velCommand.y*1.0
-                vz = resp_cvo.velCommand.z*1.0
-                if mocap_id == "/cf4_enu":
-                    print("command vel: ", vx,vy,vz)
+                # vx = resp_cvo.velCommand.x*1.0
+                # vy = resp_cvo.velCommand.y*1.0
+                # vz = resp_cvo.velCommand.z*1.0
+                cvoGekko = CVOGekko(params)
+                # set_trace()
+                # print(resp_cvo.inRangePos)
+                sx, sy, sz = cvoGekko.get_best_vel(resp_cvo.av1Xo, resp_cvo.av1Vo, resp_cvo.av1VelDes,
+                            resp_cvo.inRangePos, resp_cvo.inRangeVel,
+                            resp_cvo.inRangeUncertaintyPos, resp_cvo.inRangeUncertaintyVel)
+                velCommand = np.array([[sx], [sy], [sz]])
+                quat = np.array([[qw],
+                                 [qx],
+                                 [qy],
+                                 [qz]])
+                velCommandBody = rotp(quat, velCommand)
+                vx = velCommandBody[0,0]
+                vy = velCommandBody[1,0]
+                vz = velCommandBody[2,0]
+
+                # if mocap_id == "/cf2_enu":
+                # print("command vel: ", vx,vy,vz)
                 mc.start_linear_motion(vx, vy, vz, 0.0)
                 # mc.start_linear_motion(vx*0.5, vy*0.5, vz, 0.0)
                 # mc.start_linear_motion(vx, vy, vz, 0.0)
@@ -337,3 +356,13 @@ if __name__ == '__main__':
         # swarm.parallel(wait_for_param_download)
 
         swarm.parallel(run_sequence, args_dict=cvo_args)
+
+        # allMCs = {}
+        # for uri in cvo_args:
+        #     print(uri)
+        #     print(cvo_args[uri])
+        #     allMCs[uri] = MotionCommander(uri)
+        #
+        # time.sleep(1)
+        # for uri in cvo_args:
+        #     allMCs[uri].stop()
